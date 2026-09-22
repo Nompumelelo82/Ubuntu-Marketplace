@@ -1,26 +1,106 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* ---------- UBUNTU MARKETPLACE THEME ---------- */
+@theme {
+  /* Colour palette */
+  --color-brand-orange: #E95420;
+  --color-brand-purple: #772953;
+  --color-ink: #1F2937;
+  --color-cream: #FFF8F2;
+  --color-success: #2E7D32;
+  --color-danger: #DC2626;
+  --color-surface: #F3F4F6;
+  --color-line: #E5E7EB;
+
+  /* Rounded corners (16–20px) */
+  --radius-card: 1.25rem;
+  --radius-control: 1rem;
+
+  /* Soft shadows */
+  --shadow-soft: 0 4px 20px rgba(31, 41, 55, 0.08);
+  --shadow-lift: 0 8px 30px rgba(31, 41, 55, 0.12);
+
+  /* Font */
+  --font-sans: var(--font-inter), "Inter", system-ui, sans-serif;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* ---------- BASE ---------- */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: #FFF8F2;
+  color: #1F2937;
+  font-family: var(--font-sans);
+}
+
+h1, h2, h3, h4 {
+  color: #772953;
+  font-weight: 700;
+}
+
+/* ---------- BUTTONS ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 1rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  cursor: pointer;
+}
+
+.btn-primary {
+  background: #E95420;
+  color: #FFFFFF;
+}
+.btn-primary:hover {
+  background: #cf4517;
+}
+
+.btn-secondary {
+  background: #772953;
+  color: #FFFFFF;
+}
+.btn-secondary:hover {
+  background: #5f2042;
+}
+
+.btn-outline {
+  background: #FFFFFF;
+  color: #772953;
+  border: 2px solid #772953;
+}
+.btn-outline:hover {
+  background: #772953;
+  color: #FFFFFF;
+}
+
+.btn-danger {
+  background: #DC2626;
+  color: #FFFFFF;
+}
+.btn-danger:hover {
+  background: #b91c1c;
+}
+
+/* ---------- CARDS & FORMS ---------- */
+.card {
+  background: #FFFFFF;
+  border-radius: 1.25rem;
+  box-shadow: 0 4px 20px rgba(31, 41, 55, 0.08);
+  border: 1px solid #E5E7EB;
+}
+
+.input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  border: 1px solid #E5E7EB;
+  background: #FFFFFF;
+  color: #1F2937;
+}
+.input:focus {
+  outline: none;
+  border-color: #E95420;
+  box-shadow: 0 0 0 3px rgba(233, 84, 32, 0.15);
 }
