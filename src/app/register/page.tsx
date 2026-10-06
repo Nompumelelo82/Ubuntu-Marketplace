@@ -5,16 +5,65 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { auth, db } from "@/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
 
 type AccountType = "Student" | "Faculty" | "Resident" | "Vendor" | null;
 
 export default function RegisterPage() {
   const router = useRouter();
   const [accountType, setAccountType] = useState<AccountType>(null);
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    phone: "",
+    password: "",
+    confirmPassword: "",
+    businessName: "",
+  });
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/login");
+    setError("");
+
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords don't match");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        form.email,
+        form.password
+      );
+
+      await setDoc(doc(db, "users", userCredential.user.uid), {
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        phone: form.phone,
+        accountType,
+        businessName: accountType === "Vendor" ? form.businessName : null,
+        createdAt: new Date().toISOString(),
+      });
+
+      router.push("/login");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -55,14 +104,16 @@ export default function RegisterPage() {
               </button>
             </p>
 
-            <input className="input" placeholder="First Name" required />
-            <input className="input" placeholder="Last Name" required />
-            <input className="input" type="email" placeholder="Email" required />
-            <input className="input" type="tel" placeholder="Phone Number" required />
+            {error && <p className="text-red-600 text-sm">{error}</p>}
+
+            <input className="input" name="firstName" placeholder="First Name" onChange={handleChange} required />
+            <input className="input" name="lastName" placeholder="Last Name" onChange={handleChange} required />
+            <input className="input" name="email" type="email" placeholder="Email" onChange={handleChange} required />
+            <input className="input" name="phone" type="tel" placeholder="Phone Number" onChange={handleChange} required />
 
             {accountType === "Vendor" && (
               <>
-                <input className="input" placeholder="Business Name" required />
+                <input className="input" name="businessName" placeholder="Business Name" onChange={handleChange} required />
                 <input
                   className="input"
                   placeholder="Business Registration Document (upload reference)"
@@ -70,16 +121,11 @@ export default function RegisterPage() {
               </>
             )}
 
-            <input className="input" type="password" placeholder="Password" required />
-            <input
-              className="input"
-              type="password"
-              placeholder="Confirm Password"
-              required
-            />
+            <input className="input" name="password" type="password" placeholder="Password" onChange={handleChange} required />
+            <input className="input" name="confirmPassword" type="password" placeholder="Confirm Password" onChange={handleChange} required />
 
-            <button type="submit" className="btn btn-primary w-full">
-              Create Account
+            <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+              {loading ? "Creating account..." : "Create Account"}
             </button>
           </form>
         )}

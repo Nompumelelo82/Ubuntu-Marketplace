@@ -1,15 +1,77 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/lib/useAuth";
+import { db } from "@/firebase";
+import { collection, addDoc } from "firebase/firestore";
 
 export default function CheckoutPage() {
-  const { items, subtotal } = useCart();
+  const { items, subtotal, clearCart } = useCart();
+  const { user, loading } = useAuth();
   const router = useRouter();
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
 
-  function handleContinue(e: React.FormEvent) {
+  const [form, setForm] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    location: "",
+  });
+
+  function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  }
+
+  if (loading) return <p className="p-8">Loading...</p>;
+
+  if (!user) {
+    router.push("/login");
+    return null;
+  }
+
+  if (items.length === 0) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-4">Checkout</h1>
+        <p className="text-[#1F2937]/60">Your cart is empty.</p>
+      </div>
+    );
+  }
+
+  async function handleContinue(e: React.FormEvent) {
     e.preventDefault();
-    router.push("/dashboard/payment");
+    setError("");
+    setSubmitting(true);
+
+    try {
+      const orderRef = await addDoc(collection(db, "orders"), {
+        buyerId: user!.uid,
+        buyerName: form.fullName,
+        buyerEmail: form.email,
+        buyerPhone: form.phone,
+        location: form.location,
+        items: items.map(({ product, quantity }) => ({
+          productId: product.id,
+          name: product.name,
+          price: product.price,
+          quantity,
+          sellerId: (product as any).sellerId || null,
+        })),
+        total: subtotal,
+        status: "Pending",
+        paymentStatus: "Pending",
+        createdAt: new Date().toISOString(),
+      });
+
+      router.push(`/dashboard/payment?orderId=${orderRef.id}`);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
   }
 
   return (
@@ -34,12 +96,39 @@ export default function CheckoutPage() {
 
         <form onSubmit={handleContinue} className="card p-6 space-y-4">
           <h2 className="font-semibold mb-2">Customer Information</h2>
-          <input className="input" placeholder="Full Name" required />
-          <input className="input" type="email" placeholder="Email" required />
-          <input className="input" type="tel" placeholder="Phone Number" required />
-          <input className="input" placeholder="Delivery / Meetup Location" required />
-          <button type="submit" className="btn btn-primary w-full">
-            Continue to Payment
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+          <input
+            className="input"
+            name="fullName"
+            placeholder="Full Name"
+            onChange={handleChange}
+            required
+          />
+          <input
+            className="input"
+            name="email"
+            type="email"
+            placeholder="Email"
+            onChange={handleChange}
+            required
+          />
+          <input
+            className="input"
+            name="phone"
+            type="tel"
+            placeholder="Phone Number"
+            onChange={handleChange}
+            required
+          />
+          <input
+            className="input"
+            name="location"
+            placeholder="Delivery / Meetup Location"
+            onChange={handleChange}
+            required
+          />
+          <button type="submit" className="btn btn-primary w-full" disabled={submitting}>
+            {submitting ? "Processing..." : "Continue to Payment"}
           </button>
         </form>
       </div>

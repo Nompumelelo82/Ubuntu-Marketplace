@@ -1,23 +1,62 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useCart } from "@/context/CartContext";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth } from "@/lib/useAuth";
+import { db } from "@/firebase";
+import { doc, getDoc } from "firebase/firestore";
+
+type Order = {
+  total: number;
+  buyerName: string;
+  buyerEmail: string;
+  status: string;
+};
 
 export default function PaymentPage() {
-  const { subtotal, clearCart } = useCart();
+  const { user, loading } = useAuth();
   const router = useRouter();
-  const [method, setMethod] = useState<"PayFast" | "SnapScan">("PayFast");
-  const [status, setStatus] = useState<"idle" | "processing" | "failed">("idle");
+  const searchParams = useSearchParams();
+  const orderId = searchParams.get("orderId");
 
-  function handlePay() {
-    setStatus("processing");
-    setTimeout(() => {
-      // Simulated payment — always succeeds in this demo
-      clearCart();
-      router.push("/dashboard/orders/ORD-NEW");
-    }, 1500);
+  const [order, setOrder] = useState<Order | null>(null);
+  const [fetching, setFetching] = useState(true);
+
+  useEffect(() => {
+    async function fetchOrder() {
+      if (!orderId) {
+        setFetching(false);
+        return;
+      }
+      const snap = await getDoc(doc(db, "orders", orderId));
+      if (snap.exists()) {
+        setOrder(snap.data() as Order);
+      }
+      setFetching(false);
+    }
+    fetchOrder();
+  }, [orderId]);
+
+  if (loading || fetching) return <p className="p-8">Loading...</p>;
+
+  if (!user) {
+    router.push("/login");
+    return null;
   }
+
+  if (!orderId || !order) {
+    return (
+      <div>
+        <h1 className="text-2xl font-bold mb-4">Payment</h1>
+        <p className="text-[#1F2937]/60">No order found.</p>
+      </div>
+    );
+  }
+
+  const payfastUrl = process.env.NEXT_PUBLIC_PAYFAST_URL!;
+  const merchantId = process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_ID!;
+  const merchantKey = process.env.NEXT_PUBLIC_PAYFAST_MERCHANT_KEY!;
+  const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
 
   return (
     <div className="max-w-md">
@@ -25,41 +64,29 @@ export default function PaymentPage() {
       <div className="card p-6 space-y-4">
         <div className="flex justify-between">
           <span className="text-[#1F2937]/60">Order Amount</span>
-          <span className="font-bold">R{subtotal}</span>
-        </div>
-
-        <div>
-          <p className="text-sm text-[#1F2937]/60 mb-2">Payment Method</p>
-          <div className="grid grid-cols-2 gap-3">
-            {(["PayFast", "SnapScan"] as const).map((m) => (
-              <button
-                key={m}
-                onClick={() => setMethod(m)}
-                className={`btn ${method === m ? "btn-primary" : "btn-outline"}`}
-              >
-                {m}
-              </button>
-            ))}
-          </div>
+          <span className="font-bold">R{order.total}</span>
         </div>
 
         <p className="text-xs text-[#1F2937]/50">
-          🔒 Payments are encrypted and processed securely.
+          🔒 You'll be redirected to PayFast's secure sandbox to complete payment.
         </p>
 
-        {status === "failed" && (
-          <p className="text-[#DC2626] text-sm">
-            Payment failed. Please try again.
-          </p>
-        )}
+        <form action={payfastUrl} method="POST">
+          <input type="hidden" name="merchant_id" value={merchantId} />
+          <input type="hidden" name="merchant_key" value={merchantKey} />
+          <input type="hidden" name="return_url" value={`${siteUrl}/dashboard/orders?paid=${orderId}`} />
+          <input type="hidden" name="cancel_url" value={`${siteUrl}/dashboard/checkout`} />
+          <input type="hidden" name="notify_url" value={`${siteUrl}/api/payfast-notify`} />
+          <input type="hidden" name="name_first" value={order.buyerName} />
+          <input type="hidden" name="email_address" value={order.buyerEmail} />
+          <input type="hidden" name="m_payment_id" value={orderId} />
+          <input type="hidden" name="amount" value={order.total.toFixed(2)} />
+          <input type="hidden" name="item_name" value={`Ubuntu Marketplace Order ${orderId}`} />
 
-        <button
-          onClick={handlePay}
-          disabled={status === "processing"}
-          className="btn btn-primary w-full"
-        >
-          {status === "processing" ? "Processing..." : `Pay R${subtotal}`}
-        </button>
+          <button type="submit" className="btn btn-primary w-full">
+            Pay R{order.total} with PayFast
+          </button>
+        </form>
       </div>
     </div>
   );

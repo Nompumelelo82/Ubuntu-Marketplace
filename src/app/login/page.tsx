@@ -5,16 +5,42 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import { auth, db } from "@/firebase";
+import { signInWithEmailAndPassword } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [role, setRole] = useState<"user" | "vendor" | "admin">("user");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (role === "vendor") router.push("/vendor");
-    else if (role === "admin") router.push("/admin");
-    else router.push("/dashboard");
+    setError("");
+    setLoading(true);
+
+    try {
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+
+      const userDoc = await getDoc(doc(db, "users", userCredential.user.uid));
+
+      if (!userDoc.exists()) {
+        setError("No profile found for this account.");
+        return;
+      }
+
+      const { accountType } = userDoc.data();
+
+      if (accountType === "Vendor") router.push("/vendor");
+      else if (accountType === "Admin") router.push("/admin");
+      else router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
@@ -23,30 +49,27 @@ export default function LoginPage() {
       <section className="max-w-md mx-auto px-4 py-16">
         <h1 className="text-3xl font-bold mb-6 text-center">Login</h1>
         <form onSubmit={handleSubmit} className="card p-6 space-y-4">
-          <input className="input" type="email" placeholder="Email" required />
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+
+          <input
+            className="input"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
           <input
             className="input"
             type="password"
             placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
             required
           />
 
-          <div>
-            <p className="text-sm text-[#1F2937]/60 mb-2">
-            </p>
-            <select
-              className="input"
-              value={role}
-              onChange={(e) => setRole(e.target.value as typeof role)}
-            >
-              <option value="user">Student / Faculty / Resident</option>
-              <option value="vendor">Vendor</option>
-              <option value="admin">Administrator</option>
-            </select>
-          </div>
-
-          <button type="submit" className="btn btn-primary w-full">
-            Login
+          <button type="submit" className="btn btn-primary w-full" disabled={loading}>
+            {loading ? "Logging in..." : "Login"}
           </button>
         </form>
         <p className="text-center text-sm mt-6">
