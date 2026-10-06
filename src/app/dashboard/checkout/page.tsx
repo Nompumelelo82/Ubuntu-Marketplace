@@ -58,13 +58,30 @@ export default function CheckoutPage() {
           name: product.name,
           price: product.price,
           quantity,
-          sellerId: (product as any).sellerId || null,
+          sellerId: product.sellerId || null,
         })),
         total: subtotal,
         status: "Pending",
         paymentStatus: "Pending",
         createdAt: new Date().toISOString(),
       });
+
+      const sellerIds = [
+        ...new Set(items.map(({ product }) => product.sellerId).filter(Boolean)),
+      ];
+
+      await Promise.all(
+        sellerIds.map((sellerId) =>
+          addDoc(collection(db, "notifications"), {
+            userId: sellerId,
+            type: "Marketplace",
+            message: `You have a new order from ${form.fullName}.`,
+            orderId: orderRef.id,
+            read: false,
+            createdAt: new Date().toISOString(),
+          })
+        )
+      );
 
       router.push(`/dashboard/payment?orderId=${orderRef.id}`);
     } catch (err: any) {

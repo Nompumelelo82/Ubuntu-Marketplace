@@ -15,6 +15,7 @@ type Product = {
   category: string;
   condition: "New" | "Like New" | "Good" | "Fair";
   seller: string;
+  sellerId?: string;
   verifiedSeller: boolean;
   description: string;
   rating: number;
@@ -40,6 +41,7 @@ export default function MarketplacePage() {
           category: data.category,
           condition: data.condition,
           seller: data.sellerName,
+          sellerId: data.sellerId,
           verifiedSeller: data.verifiedSeller,
           description: data.description,
           rating: data.rating,

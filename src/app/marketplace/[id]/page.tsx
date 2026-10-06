@@ -31,6 +31,7 @@ export default function ProductDetailsPage() {
           category: data.category,
           condition: data.condition,
           seller: data.sellerName,
+          sellerId: data.sellerId,
           verifiedSeller: data.verifiedSeller,
           description: data.description,
           rating: data.rating,

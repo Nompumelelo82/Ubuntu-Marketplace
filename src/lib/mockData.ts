@@ -6,6 +6,7 @@ export type Product = {
   category: string;
   condition: "New" | "Like New" | "Good" | "Fair";
   seller: string;
+  sellerId?: string;
   verifiedSeller: boolean;
   description: string;
   rating: number;
