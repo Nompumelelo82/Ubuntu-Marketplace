@@ -26,4 +26,4 @@ export async function POST(req: NextRequest) {
     console.error("PayFast notify error:", err);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
-}
+};

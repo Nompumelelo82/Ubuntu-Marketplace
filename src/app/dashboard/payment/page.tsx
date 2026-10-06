@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { db } from "@/firebase";
@@ -13,7 +13,7 @@ type Order = {
   status: string;
 };
 
-export default function PaymentPage() {
+function PaymentContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -89,5 +89,13 @@ export default function PaymentPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<p className="p-8">Loading...</p>}>
+      <PaymentContent />
+    </Suspense>
   );
 }
