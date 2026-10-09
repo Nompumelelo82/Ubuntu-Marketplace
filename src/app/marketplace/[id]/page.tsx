@@ -117,7 +117,9 @@ export default function ProductDetailsPage() {
                 )}
               </p>
               <p className="text-sm text-[#1F2937]/60 mt-1">
-                {product.rating} ({product.reviewCount} reviews)
+                {product.reviewCount > 0
+                  ? `${product.rating} (${product.reviewCount} reviews)`
+                  : "No reviews yet"}
               </p>
             </div>
 

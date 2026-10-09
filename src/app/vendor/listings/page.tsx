@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/useAuth";
 import { db } from "@/firebase";
+import { deleteStorageImage } from "@/lib/deleteStorageImage";
 import {
   collection,
   query,
@@ -28,6 +29,10 @@ export default function VendorListingsPage() {
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
+    if (!loading && !user) router.push("/login");
+  }, [loading, user, router]);
+
+  useEffect(() => {
     if (!user) return;
 
     const q = query(collection(db, "products"), where("sellerId", "==", user.uid));
@@ -44,16 +49,12 @@ export default function VendorListingsPage() {
     return () => unsubscribe();
   }, [user]);
 
-  if (loading) return <p className="p-8">Loading...</p>;
+  if (loading || !user) return <p className="p-8">Loading...</p>;
 
-  if (!user) {
-    router.push("/login");
-    return null;
-  }
-
-  async function handleDelete(id: string) {
+  async function handleDelete(p: Product) {
     if (!confirm("Delete this listing?")) return;
-    await deleteDoc(doc(db, "products", id));
+    await deleteDoc(doc(db, "products", p.id));
+    await deleteStorageImage(p.image);
   }
 
   return (
@@ -81,8 +82,10 @@ export default function VendorListingsPage() {
               <span className="text-xs bg-[#2E7D32]/10 text-[#2E7D32] px-3 py-1 rounded-full">
                 Active
               </span>
-              <button className="btn btn-outline">Edit</button>
-              <button className="btn btn-danger" onClick={() => handleDelete(p.id)}>
+              <Link href={`/vendor/listings/${p.id}/edit`} className="btn btn-outline">
+                Edit
+              </Link>
+              <button className="btn btn-danger" onClick={() => handleDelete(p)}>
                 Delete
               </button>
             </div>
